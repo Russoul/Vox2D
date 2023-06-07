@@ -1,12 +1,18 @@
 module Vox2D.Shape.Flat.Vector
 
+import Data.Vect
+
 ||| Given a basis in ℝ²
 ||| Vector represents a geometric vector in ℝ² relative to the basis.
 public export
 record Vector where
   constructor MkVector
-  dx : Double
-  dy : Double
+  x : Double
+  y : Double
+
+public export
+toVect : Vector -> Vect 2 Double
+toVect (MkVector x y) = [x, y]
 
 public export
 neg : Vector -> Vector

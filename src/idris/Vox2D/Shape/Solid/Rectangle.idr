@@ -33,3 +33,17 @@ namespace Rectangle
       &&
     weaklyOnTheRight pt line3
 
+public export
+intersects : Line -> Rectangle -> Bool
+intersects l (MkRectangle c r u) =
+  let p0 = offset (offset c (neg r)) (neg u)
+      p1 = offset (offset c r) (neg u)
+      p2 = offset (offset c r) u
+      p3 = offset (offset c (neg r)) u in
+  intersects l (MkLineSegment p0 p1)
+    ||
+  intersects l (MkLineSegment p1 p2)
+    ||
+  intersects l (MkLineSegment p2 p3)
+    ||
+  intersects l (MkLineSegment p3 p0)

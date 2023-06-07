@@ -42,13 +42,18 @@ myBasis = MkBasis center (scale right 3) (scale up 3)
 myResolution : Resolution
 myResolution = MkResolution 1920 1080
 
-main0 : IO ()
-main0 = do
-  buf <- toStrBuffer (white myResolution.width myResolution.height)
-  writeToFile buf "white.ppm"
+myLights : List PointLight
+myLights = [MkPointLight (MkPoint 0 4) (MkLight 10 10 10)]
 
 main : IO ()
 main = do
-  let img = raytrace myBasis myShape green black myResolution
+  buf <- readFromFile "assets/dirt.ppm"
+  ppm <- fromStrBuffer buf
+  buf <- toStrBuffer ppm
+  writeToFile buf "test-dirt.ppm"
+
+{- main : IO ()
+main = do
+  let img = raytrace myBasis myShape myLights (MkMaterial 0 1 0) black myResolution
   let ppm = toPPM img
-  writeToFile !(toStrBuffer ppm) "myShape.ppm"
+  writeToFile !(toStrBuffer ppm) "myShape.ppm" -}

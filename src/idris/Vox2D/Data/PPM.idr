@@ -1,6 +1,10 @@
 module Vox2D.Data.PPM
 
 import Data.List
+import Data.Buffer
+
+import Vox2D.Text.Parser.Fork
+import Vox2D.Text.Parser.CharUtil
 
 import System.File.ReadWrite
 import System.File.Error
@@ -62,11 +66,35 @@ toStrBuffer (MkPPM w h s img) = do
   writeImgH : (todoLines : Nat) -> List Bits16 -> StrBuffer -> IO StrBuffer
   writeImgH 0 [] buf = pure buf
   writeImgH 0 (_ :: _) buf = do
-    putStrLn "Invalid image"
-    exitFailure
+    die "Invalid image"
   writeImgH (S k) rest buf = do
     (rest, buf) <- writeLine rest buf
     writeImgH k rest buf
 
   writeImg : List Bits16 -> StrBuffer -> IO StrBuffer
   writeImg img buf = writeImgH (cast h) img buf
+
+export
+parsePPM : Rule PPM
+parsePPM = do
+  mbWhitespace
+  strLike "P3"
+  whitespace
+  width <- nat
+  whitespace
+  height <- nat
+  whitespace
+  max <- nat
+  whitespace
+  dat <- sepBy whitespace (nat <&> cast)
+  mbWhitespace
+  pure (MkPPM (cast width) (cast height) (cast max) dat)
+
+export
+fromStrBuffer : StrBuffer -> IO PPM
+fromStrBuffer buf = do
+  str <- readString buf
+  let Right ok = parseFull' parsePPM str
+    | Left err =>
+        die err
+  pure ok

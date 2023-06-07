@@ -2,6 +2,7 @@ module Vox2D.Shape.Solid.Closure
 
 import Vox2D.Shape.Flat.Point
 import Vox2D.Shape.Flat.Vector
+import Vox2D.Shape.Flat.Line
 
 import Vox2D.Shape.Solid.Circle
 import Vox2D.Shape.Solid.Rectangle
@@ -27,7 +28,7 @@ data Closure : Type where
   ||| A \ B
   Difference : Closure -> Closure -> Closure
 
-namespace Shape
+namespace Closure
   ||| Check if the given point belongs to the closure-shape.
   public export
   belongs : Point -> Closure -> Bool
@@ -36,3 +37,11 @@ namespace Shape
   belongs pt (Union a b) = belongs pt a || belongs pt b
   belongs pt (Intersection a b) = belongs pt a && belongs pt b
   belongs pt (Difference a b) = belongs pt a && not (belongs pt b)
+
+  public export
+  intersects : Line -> Closure -> Bool
+  intersects l (InjCircle c) = intersects l c
+  intersects l (InjRectangle r) = intersects l r
+  intersects l (Union a b) = intersects l a || intersects l b
+  intersects l (Intersection a b) = intersects l a && intersects l b
+  intersects l (Difference a b) = intersects l a && not (intersects l b)

@@ -38,9 +38,60 @@ record Basis where
   up : Vector
   -- invariant: right ⊥ up
 
+||| RGB-encoded light.
 public export
-raytrace : Basis -> Closure -> (hitColour : Colour) -> (missColour : Colour) -> Resolution -> Img
-raytrace basis closure hitColour missColour res =
+record Light where
+  constructor MkLight
+  r : Double
+  g : Double
+  b : Double
+
+public export
+darkness : Light
+darkness = MkLight 0 0 0
+
+public export
+record Material where
+  constructor MkMaterial
+  reflectR : Double -- [0;1]
+  reflectG : Double -- [0;1]
+  reflectB : Double -- [0;1]
+
+public export
+reflect : Light -> Material -> Light
+reflect (MkLight r g b) (MkMaterial kr kg kb) =
+  MkLight (r * kr) (g * kg) (b * kb)
+
+public export
+(+) : Light -> Light -> Light
+MkLight r0 g0 b0 + MkLight r1 g1 b1 = MkLight (r0 + r1) (g0 + g1) (b0 + b1)
+
+public export
+scale : Light -> Double -> Light
+scale (MkLight r g b) k = MkLight (r * k) (g * k) (b * k)
+
+public export
+toColour : Light -> Colour
+toColour (MkLight r g b) = MkColour (cast $ min 255 (r * 255))
+                                    (cast $ min 255 (g * 255))
+                                    (cast $ min 255 (b * 255))
+
+||| Point light w.r.t. an orthogonal basis in ℝ².
+public export
+record PointLight where
+  constructor MkPointLight
+  pt : Point
+  intensity : Light
+
+public export
+raytrace : Basis
+        -> Closure
+        -> List PointLight
+        -> (hitMaterial : Material)
+        -> (missColour : Colour)
+        -> Resolution
+        -> Img
+raytrace basis closure lights hitMaterial missColour res =
  let stepU = 2.0 * length basis.right / cast res.width in
  let stepV = 2.0 * length basis.up / cast res.height in
  let o = offset (offset basis.center (neg basis.right)) basis.up in
@@ -56,6 +107,19 @@ raytrace basis closure hitColour missColour res =
   samplePoint o stepU stepV row col =
     offset o (MkVector (stepU * 0.5 + stepU * cast col) (-(stepV * 0.5 + stepV * cast row)))
 
+
+  applyLight : PointLight -> Point -> Material -> Light
+  applyLight light pt material =
+    scale (reflect light.intensity material) (1 / length2 (displacement pt light.pt))
+
+  applyLights : List PointLight -> Point -> Material -> Light
+  applyLights lights pt mat =
+    sum $ map (\l => applyLight l pt mat) lights
+   where
+    sum : List Light -> Light
+    sum [] = darkness
+    sum (x :: xs) = x + sum xs
+
   samplePixel : (topLeftCorner : Point)
              -> (stepU : Double)
              -> (stepV : Double)
@@ -63,8 +127,9 @@ raytrace basis closure hitColour missColour res =
              -> (col : Bits32)
              -> Colour
   samplePixel o stepU stepV row col =
-    case belongs (samplePoint o stepU stepV row col) closure of
-      True => hitColour
+    let pt = samplePoint o stepU stepV row col in
+    case belongs pt closure of
+      True => toColour $ applyLights lights pt hitMaterial
       False => missColour
 
   sampleRowH : (topLeftCorner : Point)

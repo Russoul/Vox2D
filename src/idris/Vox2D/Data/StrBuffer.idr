@@ -8,11 +8,12 @@ import System.File.ReadWrite
 import System.File.Error
 import System.File.Buffer
 
+||| A native dynamic byte-buffer (Buffer) together with an actual size in bytes (offset)
 public export
 record StrBuffer where
   constructor MkStrBuffer
   get : Buffer
-  ||| Actual size (= byte offset to the next free byte)
+  ||| Actual size (= byte offset to the next allocated unused byte)
   offset : Int
 
 export
@@ -59,3 +60,14 @@ writeToFile buf filename = do
        putStrLn (show err)
        exitFailure
   pure ()
+
+export
+readFromFile : (filename : String) -> IO StrBuffer
+readFromFile filename = do
+  Right b <- createBufferFromFile filename
+    | Left err => die (show err)
+  pure (MkStrBuffer b !(rawSize b))
+
+public export
+readString : StrBuffer -> IO String
+readString buf = getString buf.get 0 buf.offset
