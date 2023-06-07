@@ -23,6 +23,17 @@ record PPM where
   img : List Bits16
 
 public export
+at : PPM -> Nat -> Nat -> Maybe (Bits16, Bits16, Bits16)
+at (MkPPM width height scale img) u v = H img u v
+ where
+   H : List Bits16 -> Nat -> Nat -> Maybe (Bits16, Bits16, Bits16)
+   H (r :: g :: b :: _) 0 0 = Just (r, g, b)
+   H _ 0 0 = Nothing
+   H rest 0 (S v) = H rest (cast width) v
+   H (r :: g :: b :: rest) (S u) v = H rest u v
+   H _ (S u) v = Nothing
+
+public export
 white : Bits32 -> Bits32 -> PPM
 white w h = MkPPM w h 255 (replicate (cast $ w * h * 3) 255)
 

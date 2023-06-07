@@ -10,6 +10,7 @@ import Vox2D.Shape.Solid.Closure
 
 import Vox2D.Data.Colour
 import Vox2D.Data.PPM
+import Vox2D.Data.Material
 
 import Data.Buffer
 
@@ -51,13 +52,6 @@ darkness : Light
 darkness = MkLight 0 0 0
 
 public export
-record Material where
-  constructor MkMaterial
-  reflectR : Double -- [0;1]
-  reflectG : Double -- [0;1]
-  reflectB : Double -- [0;1]
-
-public export
 reflect : Light -> Material -> Light
 reflect (MkLight r g b) (MkMaterial kr kg kb) =
   MkLight (r * kr) (g * kg) (b * kb)
@@ -87,11 +81,11 @@ public export
 raytrace : Basis
         -> Closure
         -> List PointLight
-        -> (hitMaterial : Material)
+        -> (textureAtlas : PPM) -- TODO: switch to an IR
         -> (missColour : Colour)
         -> Resolution
-        -> Img
-raytrace basis closure lights hitMaterial missColour res =
+        -> Img --TODO: Wrap in a monad to support sensible error-handing
+raytrace basis closure lights atlas missColour res =
  let stepU = 2.0 * length basis.right / cast res.width in
  let stepV = 2.0 * length basis.up / cast res.height in
  let o = offset (offset basis.center (neg basis.right)) basis.up in
@@ -129,7 +123,9 @@ raytrace basis closure lights hitMaterial missColour res =
   samplePixel o stepU stepV row col =
     let pt = samplePoint o stepU stepV row col in
     case belongs pt closure of
-      True => toColour $ applyLights lights pt hitMaterial
+      True =>
+        let hitMaterial = textureMap closure pt in
+        toColour $ applyLights lights pt hitMaterial
       False => missColour
 
   sampleRowH : (topLeftCorner : Point)
